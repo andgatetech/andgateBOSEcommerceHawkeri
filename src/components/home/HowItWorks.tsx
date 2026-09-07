@@ -16,11 +16,11 @@ const steps = [
     {
         step: "02",
         eyebrow: "Checkout",
-        title: "Order with payment flexibility",
-        description: "Add products to cart, choose cash on delivery or digital payment, then confirm your address without a long checkout maze.",
+        title: "Order with a fast, simple checkout",
+        description: "Add products to cart, pay cash on delivery, then confirm your address without a long checkout maze.",
         image: "/images/hawkeri/home/story-order-packing.jpg",
         icon: FiShoppingCart,
-        badge: "COD, bKash, Nagad ready",
+        badge: "Cash on Delivery",
         accent: "bg-(--color-cta)",
     },
     {

@@ -104,6 +104,10 @@ function CheckoutCartItemsSkeleton() {
   );
 }
 
+// bKash/Nagad/Upay/Card used to be listed here with no real payment gateway
+// behind any of them — every order settled as manual/COD regardless of what
+// the customer picked. Restricted to the one method that's actually real
+// until a real gateway integration exists.
 const paymentOptions: PaymentOption[] = [
   {
     id: "cash-on-delivery",
@@ -111,37 +115,9 @@ const paymentOptions: PaymentOption[] = [
     logo: "/images/payment/cod.png",
     logoAlt: "Cash on delivery",
   },
-  {
-    id: "bkash",
-    label: "bKash",
-    logo: "/images/payment/BKash-bKash-Logo.png",
-    logoAlt: "bKash",
-  },
-  {
-    id: "nagad",
-    label: "Nagad",
-    logo: "/images/payment/Nagad-Horizontal-Logo.png",
-    logoAlt: "Nagad",
-  },
-  {
-    id: "upay",
-    label: "Upay",
-    logo: "/images/payment/upay.png",
-    logoAlt: "Upay",
-  },
-  {
-    id: "card",
-    label: "Credit / Debit Card",
-    logo: "/images/payment/card.png",
-    logoAlt: "Credit and debit card",
-  },
 ];
 
 const paymentMethodMap: Record<string, string> = {
-  bkash: "bkash",
-  nagad: "nagad",
-  upay: "upay",
-  card: "card",
   "cash-on-delivery": "cash_on_delivery",
 };
 
@@ -1132,8 +1108,6 @@ export default function CheckoutView() {
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {[
-                  "/images/payment/BKash-bKash-Logo.png",
-                  "/images/payment/Nagad-Horizontal-Logo.png",
                   "/images/payment/cod.png",
                 ].map((logo) => (
                   <div key={logo} className="flex h-7 w-14 items-center justify-center rounded-md border border-(--color-border) bg-white px-1">

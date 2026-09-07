@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 const faqs = [
   { q: "How do I track my order?", a: "Once your order is shipped, you will receive an SMS and email with your tracking number. You can also view shipping status in your 'My Account' dashboard." },
-  { q: "What payment methods do you accept?", a: "We accept Cash on Delivery (COD), bKash, Nagad, Visa, MasterCard, and direct bank transfers." },
+  { q: "What payment methods do you accept?", a: "We currently accept Cash on Delivery (COD) only." },
   { q: "How long does shipping take?", a: "Standard delivery within Dhaka takes 1-2 business days. Outside Dhaka takes 3-5 business days depending on the courier." },
   { q: "What should I do if I receive a damaged item?", a: "Please refer to our Return Policies. Contact us within 48 hours of delivery with pictures of the damaged product and we will arrange a replacement." }
 ];
