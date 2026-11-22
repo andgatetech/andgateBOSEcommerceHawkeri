@@ -6,6 +6,7 @@ import {
   type ProductCollection,
   useGetProductCollectionQuery,
 } from "@/features/catalog/productApi";
+import { useFilterDialogFocus } from "@/hooks/useFilterDialogFocus";
 import { useListQuery } from "@/hooks/useListQuery";
 import Container from "@/components/shared/Container";
 import Pagination from "@/components/shared/Pagination";
@@ -91,6 +92,7 @@ export default function ProductPageContent({
   collection = "all",
 }: ProductPageContentProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  useFilterDialogFocus(drawerOpen, () => setDrawerOpen(false));
   const collectionMeta = COLLECTION_META[collection];
   const defaultPerPage = collection === "deals-of-day" ? 20 : DEFAULT_PER_PAGE;
   const perPageOptions = collection === "deals-of-day" ? [20, 40, 50] : [12, 24, 36, 48];
@@ -163,7 +165,7 @@ export default function ProductPageContent({
     ],
   );
 
-  const { currentData, isFetching, isError } =
+  const { currentData, isFetching, isError, refetch } =
     useGetProductCollectionQuery({ collection, params: baseQueryParams });
 
   const products = currentData?.items ?? [];
@@ -279,6 +281,7 @@ export default function ProductPageContent({
   return (
     <section className="bg-(--color-bg) pb-10 pt-6 md:pb-12 md:pt-8 lg:pb-16 lg:pt-10">
       <Container>
+        {collection === "all" && <div className="shop-catalog-heading"><p className="shop-eyebrow">Browse the catalogue</p><h1>Shop all products</h1><p>Find your next pick by category, brand or price.</p></div>}
         {collection !== "all" && (
           <div className="mb-6 overflow-hidden rounded-[24px] border border-(--color-border) bg-white shadow-[0_18px_50px_rgba(19,45,69,0.05)]">
             <div className={`grid gap-5 p-5 md:grid-cols-[1fr_auto] md:items-center md:p-7 ${
@@ -333,7 +336,7 @@ export default function ProductPageContent({
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[250px_minmax(0,1fr)]">
           {/* Desktop sticky sidebar — hidden on mobile */}
           <div className="filter-scrollbar-none hidden overscroll-contain lg:sticky lg:top-[154px] lg:block lg:max-h-[calc(100vh-178px)] lg:self-start lg:overflow-y-auto xl:top-[176px] xl:max-h-[calc(100vh-200px)]">
             <ProductFiltersSidebar {...filterProps} />
@@ -341,7 +344,7 @@ export default function ProductPageContent({
 
           <div>
             {/* Toolbar */}
-            <div className="mb-5 rounded-[24px] border border-(--color-border) bg-white p-4 shadow-[0_18px_50px_rgba(19,45,69,0.05)] md:p-5">
+            <div className="shop-listing-toolbar mb-5 rounded-[14px] border border-(--color-border) bg-white p-4 shadow-[0_18px_50px_rgba(19,45,69,0.05)] md:p-5">
               <div className="flex flex-wrap items-center gap-3">
                 {/* Mobile filter button */}
                 <button
@@ -381,8 +384,8 @@ export default function ProductPageContent({
                   ))}
                 </select>
 
-                <span className="ml-auto whitespace-nowrap text-sm text-(--color-text-muted)">
-                  {total > 0 ? (
+                <span role="status" aria-live="polite" className="ml-auto whitespace-nowrap text-sm text-(--color-text-muted)">
+                  {isFetching && !currentData ? <>Loading products…</> : isError && !currentData ? <>Products unavailable</> : total > 0 ? (
                     <>
                       Showing <span className="font-semibold text-(--color-dark)">{from}-{to}</span> of{" "}
                       <span className="font-semibold text-(--color-dark)">{total}</span>
@@ -425,8 +428,8 @@ export default function ProductPageContent({
             {isError && products.length === 0 ? (
               <div className="rounded-[24px] border border-(--color-border) bg-white px-6 py-16 text-center shadow-[0_18px_50px_rgba(19,45,69,0.05)]">
                 <p className="text-sm text-(--color-text-muted)">
-                  Failed to load products. Please try again.
-                </p>
+                  Products could not be loaded. Check your connection and try again.
+                </p><button type="button" onClick={() => refetch()} className="shop-retry">Try again</button>
               </div>
             ) : isFetching && products.length === 0 ? (
               <ProductPageSkeleton />
@@ -447,10 +450,10 @@ export default function ProductPageContent({
                 </button>
               </div>
             ) : (
-              <div className={`grid gap-4 sm:grid-cols-2 ${
+              <div className={`shop-product-grid grid grid-cols-2 gap-3 md:gap-5 ${
                 collection === "deals-of-day"
                   ? "lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
-                  : "xl:grid-cols-3 2xl:grid-cols-5"
+                  : "md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
               }`}>
                 {products.map((product) => (
                   <PopularProductCard key={product.id} product={product} />
@@ -480,6 +483,7 @@ export default function ProductPageContent({
             aria-hidden
           />
           <div
+            data-product-filter-dialog
             role="dialog"
             aria-modal="true"
             aria-label="Product filters"

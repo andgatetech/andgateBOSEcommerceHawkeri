@@ -23,7 +23,7 @@ export default function Logo({
   noLink = false,
   className = "",
   variant = "default",
-  src = "/images/Hawkeri1.png",
+  src = "/images/hawkeri-logo.webp",
 }: LogoProps) {
   const image = (
     <Image
@@ -37,7 +37,7 @@ export default function Logo({
         width: `${width}px`,
         height: `${height}px`,
         ...(variant === "default"
-          ? { mixBlendMode: "multiply" as const, filter: "brightness(1.08)" }
+          ? { mixBlendMode: "multiply" as const, filter: "none" }
           : {}),
       }}
       className={`object-contain ${

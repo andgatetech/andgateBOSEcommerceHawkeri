@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { ListQueryParams } from "@/types";
 
 export interface ExtraListQueryParamConfig {
@@ -85,7 +85,6 @@ export function useListQuery<
     extraParams: extraParamConfigs = [],
   } = options;
 
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -150,10 +149,11 @@ export function useListQuery<
       });
 
       const query = qs.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      // Filter data is fetched by RTK Query. Native history keeps Next's search
+      // params in sync without re-rendering the entire server layout per change.
+      window.history.replaceState(null, "", query ? `${pathname}?${query}` : pathname);
     },
     [
-      router,
       pathname,
       urlSearch,
       urlPage,

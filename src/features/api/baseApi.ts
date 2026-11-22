@@ -36,9 +36,13 @@ const baseQueryWithAuth: BaseQueryFn<
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  const result = await baseQuery(args, api, extraOptions);
+  const request = api.type === "query"
+    ? (typeof args === "string" ? { url: args, timeout: 10000 } : { timeout: 10000, ...args })
+    : args;
+  const result = await baseQuery(request, api, extraOptions);
 
   if (result.error) {
+    if (api.type === "query" && result.error.status === "TIMEOUT_ERROR") retry.fail(result.error);
     if (result.error.status === 401) {
       clearStoredAuth();
       api.dispatch(logout());

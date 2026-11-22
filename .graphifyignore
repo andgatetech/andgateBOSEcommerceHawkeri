@@ -1,0 +1,94 @@
+# Dependencies
+.git/
+node_modules/
+.pnpm-store/
+
+# Graphify output
+graphify-out/
+.graphify/
+.code-review-graph/
+
+# Next.js generated output
+.next/
+out/
+dist/
+build/
+coverage/
+.turbo/
+.cache/
+
+# Static assets
+public/
+assets/
+images/
+screenshots/
+
+# Documentation
+*.md
+*.mdx
+*.txt
+*.rst
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+# Images and media
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.webp
+*.bmp
+*.ico
+*.avif
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.mp3
+*.wav
+
+# Generated files
+*.map
+*.min.js
+*.min.css
+tsconfig.tsbuildinfo
+
+# Logs and temporary files
+*.log
+*.cache
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# Archives and exports
+*.zip
+*.tar
+*.tar.gz
+*.gz
+*.rar
+*.7z
+*.csv
+*.sql
+*.dump
+
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.*
+
+# YAML is classified by Graphify as documentation
+*.yaml
+*.yml

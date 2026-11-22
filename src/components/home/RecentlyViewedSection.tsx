@@ -22,7 +22,7 @@ export default function RecentlyViewedSection({ excludeId }: { excludeId?: numbe
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
         {items.map((item) => (
-          <Link
+          <Link prefetch={false}
             key={item.id}
             href={ROUTE_BUILDERS.productDetail(item.slug)}
             className="group flex flex-col overflow-hidden rounded-[14px] border border-(--color-border) bg-white transition hover:border-(--color-primary) hover:shadow-md"

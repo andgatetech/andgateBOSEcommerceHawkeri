@@ -34,7 +34,7 @@ export default function MobileBottomNav() {
           const active =
             href === ROUTES.HOME ? pathname === "/" : pathname.startsWith(href);
           return (
-            <Link
+            <Link prefetch={false}
               key={href}
               href={href}
               className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors ${

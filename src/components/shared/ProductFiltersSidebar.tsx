@@ -89,9 +89,10 @@ export default function ProductFiltersSidebar({
   className = "",
   hideHeader = false,
 }: ProductFiltersSidebarProps) {
+  const visibleBrands = brands.filter(b => !/^(\(?not provided\)?|unknown|n\/a)$/i.test(b.name.trim()));
   return (
     <aside
-      className={`filter-scrollbar-none rounded-[24px] border border-(--color-border) bg-white p-5 shadow-[0_18px_50px_rgba(19,45,69,0.06)] ${className}`}
+      className={`shop-filter-sidebar filter-scrollbar-none rounded-[14px] border border-(--color-border) bg-white p-5 shadow-[0_18px_50px_rgba(19,45,69,0.06)] ${className}`}
     >
       {!hideHeader && (
         <div className="mb-1 flex items-center justify-between gap-3">
@@ -139,6 +140,7 @@ export default function ProductFiltersSidebar({
                     }`}
                   >
                     {category.name}
+                    {category.store?.store_name && categories.filter(other => other.name.trim().toLowerCase() === category.name.trim().toLowerCase()).length > 1 && <small className="mt-1 block text-[10px] font-normal text-(--color-text-muted)">{category.store.store_name}</small>}
                   </span>
                 </label>
               );
@@ -149,10 +151,10 @@ export default function ProductFiltersSidebar({
 
       <FilterSection title="Brand" defaultOpen>
         <div className="filter-scrollbar-none max-h-[220px] space-y-0.5 overflow-y-auto">
-          {brands.length === 0 ? (
+          {visibleBrands.length === 0 ? (
             <p className="px-3 py-2 text-xs text-(--color-text-muted)">No brands available</p>
           ) : (
-            brands.map((brand) => {
+            visibleBrands.map((brand) => {
               const checked = selectedBrand === brand.slug;
               return (
                 <label

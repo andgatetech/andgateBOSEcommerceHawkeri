@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "home-20261122";
 const STATIC_CACHE = `hawkeri-static-${CACHE_VERSION}`;
 const IMAGE_CACHE = `hawkeri-images-${CACHE_VERSION}`;
 const PAGE_CACHE = `hawkeri-pages-${CACHE_VERSION}`;

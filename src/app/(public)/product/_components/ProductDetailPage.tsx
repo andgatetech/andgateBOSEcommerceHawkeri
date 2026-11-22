@@ -500,23 +500,23 @@ export default function ProductDetailPage({ product }: ProductDetailPageProps) {
   const trustSignals = [
     {
       icon: FiTruck,
-      title: "Free Delivery",
-      subtitle: "On orders over ৳2,000",
+      title: "Delivery charges",
+      subtitle: "Calculated by location at checkout",
     },
     {
       icon: FiRefreshCw,
       title: "Easy Returns",
-      subtitle: "7-day return policy",
+      subtitle: "Check product and store eligibility",
     },
     {
       icon: FiShield,
-      title: "Secure Payment",
-      subtitle: "100% protected checkout",
+      title: "Cash on delivery",
+      subtitle: "Review the total before ordering",
     },
     {
       icon: FiAward,
-      title: "Authentic Product",
-      subtitle: "Verified by Andgate",
+      title: "Seller information",
+      subtitle: "Review the store and product details",
     },
   ];
 

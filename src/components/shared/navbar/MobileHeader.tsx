@@ -62,6 +62,11 @@ export default function MobileHeader({ cartCount, isCartOpen, onCartClick }: Mob
     setHasMounted(true);
   }, []);
 
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") { setMobileMenuOpen(false); setAccountMenuOpen(false); } };
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, []);
   const accountMenuItems = [
     { label: "My Account", href: ROUTES.MY_ACCOUNT },
     { label: "My Wishlist", href: ROUTES.WISHLIST },
@@ -70,9 +75,9 @@ export default function MobileHeader({ cartCount, isCartOpen, onCartClick }: Mob
   ];
 
   return (
-    <div className="xl:hidden bg-(--color-bg) border-b border-(--color-border) py-3 px-4 shadow-sm">
+    <div className="shop-mobile-header xl:hidden bg-(--color-bg) border-b border-(--color-border) py-3 px-4">
       <div className="flex items-center justify-between">
-        <Logo width={140} height={38} className="translate-x-2" />
+        <Logo width={140} height={38} className="" />
         <div className="flex items-center gap-x-4">
           <button
             type="button"
@@ -80,7 +85,7 @@ export default function MobileHeader({ cartCount, isCartOpen, onCartClick }: Mob
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-main-menu"
-            className="text-(--color-dark) cursor-pointer"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-(--color-dark) cursor-pointer"
           >
             {mobileMenuOpen ? (
               <FaTimes className="text-xl" />
@@ -114,7 +119,7 @@ export default function MobileHeader({ cartCount, isCartOpen, onCartClick }: Mob
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
         <nav id="mobile-main-menu" className="mt-4 pb-4 border-t border-(--color-border) pt-4">
-          <Link
+          <Link prefetch={false}
             href={ROUTES.CATEGORY}
             className="mb-4 flex items-center justify-center rounded-[10px] bg-(--color-primary) px-4 py-3 text-sm font-semibold text-(--color-bg) transition-colors hover:bg-(--color-primary-dark)"
             onClick={() => setMobileMenuOpen(false)}
@@ -122,7 +127,7 @@ export default function MobileHeader({ cartCount, isCartOpen, onCartClick }: Mob
             Browse Categories
           </Link>
           <div className="mb-4 grid grid-cols-2 gap-3">
-            <Link
+            <Link prefetch={false}
               href={ROUTES.STORE}
               className="rounded-lg border border-(--color-primary-200) bg-(--color-primary-50) p-3 text-(--color-primary-900) transition hover:border-(--color-primary)"
               onClick={() => setMobileMenuOpen(false)}
@@ -133,7 +138,7 @@ export default function MobileHeader({ cartCount, isCartOpen, onCartClick }: Mob
               <span className="mt-3 block text-sm font-bold">Stores</span>
               <span className="mt-1 block text-xs leading-5 text-(--color-text-muted)">Browse sellers</span>
             </Link>
-            <Link
+            <Link prefetch={false}
               href={ROUTES.BRAND}
               className="rounded-lg border border-(--color-cta-200) bg-(--color-cta-100) p-3 text-(--color-cta-dark) transition hover:border-(--color-cta)"
               onClick={() => setMobileMenuOpen(false)}
@@ -148,7 +153,7 @@ export default function MobileHeader({ cartCount, isCartOpen, onCartClick }: Mob
           <ul className="flex flex-col gap-y-3">
             {mobileNavLinks.filter((link) => link.href !== ROUTES.STORE && link.href !== ROUTES.BRAND).map((link) => (
               <li key={link.label}>
-                <Link
+                <Link prefetch={false}
                   href={link.href}
                   className="text-(--color-dark) text-sm font-medium hover:text-(--color-cta) transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
@@ -177,7 +182,7 @@ export default function MobileHeader({ cartCount, isCartOpen, onCartClick }: Mob
                 {hasMounted && showAuthenticatedMenu ? (
                   <>
                     {accountMenuItems.map((item) => (
-                      <Link
+                      <Link prefetch={false}
                         key={item.label}
                         href={item.href}
                         className="block rounded-[10px] px-3 py-2 text-(--color-dark) text-sm font-medium hover:bg-(--color-primary-100) hover:text-(--color-cta) transition-colors"
@@ -203,7 +208,7 @@ export default function MobileHeader({ cartCount, isCartOpen, onCartClick }: Mob
                   </>
                 ) : (
                   <>
-                    <Link
+                    <Link prefetch={false}
                       href={ROUTES.LOGIN}
                       className="block rounded-[10px] px-3 py-2 text-(--color-dark) text-sm font-medium hover:bg-(--color-primary-100) hover:text-(--color-cta) transition-colors"
                       onClick={() => {
@@ -213,7 +218,7 @@ export default function MobileHeader({ cartCount, isCartOpen, onCartClick }: Mob
                     >
                       Login
                     </Link>
-                    <Link
+                    <Link prefetch={false}
                       href={ROUTES.REGISTER}
                       className="block rounded-[10px] px-3 py-2 text-(--color-dark) text-sm font-medium hover:bg-(--color-primary-100) hover:text-(--color-cta) transition-colors"
                       onClick={() => {
@@ -242,7 +247,7 @@ export default function MobileHeader({ cartCount, isCartOpen, onCartClick }: Mob
 
             return (
               <li key={link.label}>
-                <Link
+                <Link prefetch={false}
                   href={link.href}
                   className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-[14px] px-2 py-2 text-[11px] font-semibold transition-colors ${
                     isActive

@@ -2,10 +2,13 @@ import ReduxProvider from "@/lib/providers";
 import ServiceWorkerRegistration from "@/components/shared/ServiceWorkerRegistration";
 import { SITE_URL } from "@/lib/site";
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { headers } from "next/headers";
+import localFont from "next/font/local";
 import "./globals.css";
+import "./shop-refinement.css";
+import "./market-home.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const shopFont = localFont({ src: "../../public/fonts/plus-jakarta-latin.woff2", display: "swap", weight: "400 800" });
 
 export const viewport: Viewport = {
   themeColor: "#e79237",
@@ -21,7 +24,7 @@ export const metadata: Metadata = {
     template: "%s | Hawkeri",
   },
   description:
-    "Hawkeri is a Bangladesh-focused online shopping marketplace for fashion, beauty, electronics, grocery, daily essentials and local sellers with COD and digital payment-friendly shopping.",
+    "Hawkeri is a Bangladesh-focused online shopping marketplace for fashion, beauty, electronics, grocery, daily essentials and local sellers with cash-on-delivery shopping.",
   keywords: [
     "online shopping in Bangladesh",
     "ecommerce marketplace Bangladesh",
@@ -89,11 +92,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -135,11 +139,11 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(onlineStoreSchema) }} />
+        <script nonce={nonce} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
+        <script nonce={nonce} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
+        <script nonce={nonce} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(onlineStoreSchema) }} />
       </head>
-      <body className={`${inter.className} antialiased`}>
+      <body className={`${shopFont.className} antialiased`}>
         <ReduxProvider>
           {children}
           <ServiceWorkerRegistration />

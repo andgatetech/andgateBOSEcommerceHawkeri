@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import ProductPageDataProvider from "@/app/(public)/product/_components/ProductPageDataProvider";
@@ -8,19 +9,28 @@ interface CategoryDetailPageProps {
   params: Promise<{ slug: string }>;
 }
 
-async function getCategoryBySlug(slug: string): Promise<Category | null> {
+// The catalogue spans multiple pages; valid categories must not become 404s
+// simply because their names sort beyond the first page.
+const getCategories = cache(async (): Promise<Category[]> => {
   try {
     const response = await serverFetchJson<PaginatedResponse<Category>>("/categories", {
-      per_page: 100,
-      sort_field: "name",
-      sort_direction: "asc",
+      page: 1, per_page: 100, sort_field: "name", sort_direction: "asc",
     });
-    return (
-      response.data.items.find((category) => category.slug === slug) ?? null
+    const remaining = await Promise.all(
+      Array.from({ length: Math.max(0, response.data.pagination.last_page - 1) }, (_, i) =>
+        serverFetchJson<PaginatedResponse<Category>>("/categories", {
+          page: i + 2, per_page: 100, sort_field: "name", sort_direction: "asc",
+        }),
+      ),
     );
+    return [...response.data.items, ...remaining.flatMap(page => page.data.items)];
   } catch {
-    return null;
+    return [];
   }
+});
+
+async function getCategoryBySlug(slug: string): Promise<Category | null> {
+  return (await getCategories()).find(category => category.slug === slug) ?? null;
 }
 
 export async function generateMetadata({
@@ -49,5 +59,5 @@ export default async function CategoryDetailPage({
     notFound();
   }
 
-  return <ProductPageDataProvider initialCategory={category.slug} />;
+  return <ProductPageDataProvider initialCategory={category.slug} categories={await getCategories()} />;
 }

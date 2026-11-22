@@ -5,6 +5,7 @@ import { FiSliders, FiX } from "react-icons/fi";
 import { useGetBrandsQuery } from "@/features/catalog/brandApi";
 import { useGetCategoriesQuery } from "@/features/catalog/categoryApi";
 import { useGetProductsQuery } from "@/features/catalog/productApi";
+import { useFilterDialogFocus } from "@/hooks/useFilterDialogFocus";
 import { useListQuery } from "@/hooks/useListQuery";
 import Container from "@/components/shared/Container";
 import Pagination from "@/components/shared/Pagination";
@@ -46,6 +47,7 @@ const DEFAULT_SORT_DIRECTION: "asc" | "desc" = "desc";
 
 export default function ProductCatalogPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  useFilterDialogFocus(drawerOpen, () => setDrawerOpen(false));
 
   const {
     params,
@@ -113,7 +115,7 @@ export default function ProductCatalogPage() {
     ],
   );
 
-  const { currentData, isFetching, isError } = useGetProductsQuery(baseQueryParams);
+  const { currentData, isFetching, isError, refetch } = useGetProductsQuery(baseQueryParams);
   const { data: categoriesData } = useGetCategoriesQuery({
     per_page: 100,
     sort_field: "name",
@@ -238,19 +240,19 @@ export default function ProductCatalogPage() {
   return (
     <section className="bg-(--color-bg) pb-10 pt-6 md:pb-12 md:pt-8 lg:pb-16 lg:pt-10">
       <Container>
-        <div className="mb-6 rounded-[28px] border border-(--color-border) bg-[linear-gradient(135deg,#ffffff_0%,#f6fbff_100%)] p-6 shadow-[0_18px_60px_rgba(19,45,69,0.06)] md:p-8">
+        <div className="shop-catalog-heading mb-6 rounded-[28px] border border-(--color-border) bg-[linear-gradient(135deg,#ffffff_0%,#f6fbff_100%)] p-6 shadow-[0_18px_60px_rgba(19,45,69,0.06)] md:p-8">
           <span className="inline-flex rounded-full border border-(--color-primary-200) bg-(--color-primary-100) px-4 py-1.5 text-[12px] font-semibold uppercase tracking-[0.18em] text-(--color-primary)">
             All Products
           </span>
           <h1 className="mt-4 text-[30px] font-semibold tracking-[-0.03em] text-(--color-primary-900) md:text-[40px]">
-            Browse Our Collection
+            Shop all products
           </h1>
           <p className="mt-3 max-w-[720px] text-sm leading-7 text-(--color-text-muted)">
             Filter by category, brand, and price range to find exactly what you need.
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[250px_minmax(0,1fr)]">
           {/* Desktop sticky sidebar */}
           <div className="filter-scrollbar-none hidden overscroll-contain lg:sticky lg:top-[154px] lg:block lg:max-h-[calc(100vh-178px)] lg:self-start lg:overflow-y-auto xl:top-[176px] xl:max-h-[calc(100vh-200px)]">
             <ProductFiltersSidebar {...filterProps} />
@@ -258,7 +260,7 @@ export default function ProductCatalogPage() {
 
           <div>
             {/* Toolbar */}
-            <div className="mb-5 rounded-[24px] border border-(--color-border) bg-white p-4 shadow-[0_18px_50px_rgba(19,45,69,0.05)] md:p-5">
+            <div className="shop-listing-toolbar mb-5 rounded-[14px] border border-(--color-border) bg-white p-4 shadow-[0_18px_50px_rgba(19,45,69,0.05)] md:p-5">
               <div className="flex flex-wrap items-center gap-3">
                 {/* Mobile filter button — hidden on desktop */}
                 <button
@@ -298,8 +300,8 @@ export default function ProductCatalogPage() {
                   ))}
                 </select>
 
-                <span className="ml-auto whitespace-nowrap text-sm text-(--color-text-muted)">
-                  {total > 0 ? (
+                <span role="status" aria-live="polite" className="ml-auto whitespace-nowrap text-sm text-(--color-text-muted)">
+                  {isFetching && !currentData ? <>Loading products…</> : isError && !currentData ? <>Products unavailable</> : total > 0 ? (
                     <>
                       Showing <span className="font-semibold text-(--color-dark)">{from}-{to}</span> of{" "}
                       <span className="font-semibold text-(--color-dark)">{total}</span>
@@ -342,8 +344,8 @@ export default function ProductCatalogPage() {
             {isError && products.length === 0 ? (
               <div className="rounded-[24px] border border-(--color-border) bg-white px-6 py-16 text-center shadow-[0_18px_50px_rgba(19,45,69,0.05)]">
                 <p className="text-sm text-(--color-text-muted)">
-                  Failed to load products. Please try again.
-                </p>
+                  Products could not be loaded. Check your connection and try again.
+                </p><button type="button" onClick={() => refetch()} className="shop-retry">Try again</button>
               </div>
             ) : isFetching && products.length === 0 ? (
               <ProductPageSkeleton />
@@ -364,7 +366,7 @@ export default function ProductCatalogPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+              <div className="shop-product-grid grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-3 2xl:grid-cols-4">
                 {products.map((product) => (
                   <PopularProductCard key={product.id} product={product} />
                 ))}
@@ -391,6 +393,7 @@ export default function ProductCatalogPage() {
             aria-hidden
           />
           <div
+            data-product-filter-dialog
             role="dialog"
             aria-modal="true"
             aria-label="Product filters"

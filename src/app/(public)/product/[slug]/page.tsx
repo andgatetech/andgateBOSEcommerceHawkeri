@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import MetaPixelEventOnMount from "@/components/analytics/MetaPixelEventOnMount";
@@ -42,7 +43,7 @@ async function getProduct(slug: string): Promise<EcommerceProduct | null> {
   }
 }
 
-async function getProductWithActiveDeal(slug: string): Promise<EcommerceProduct | null> {
+const getProductWithActiveDeal = cache(async (slug: string): Promise<EcommerceProduct | null> => {
   const product = await getProduct(slug);
   if (!product) return null;
 
@@ -62,7 +63,7 @@ async function getProductWithActiveDeal(slug: string): Promise<EcommerceProduct 
   } catch {
     return product;
   }
-}
+});
 
 export async function generateMetadata({
   params,

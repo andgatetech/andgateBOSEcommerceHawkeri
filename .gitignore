@@ -46,3 +46,12 @@ next-env.d.ts
 
 # vscode
 .vscode/*
+
+# Private configuration and local analysis
+.env*
+!.env.example
+/graphify-out/
+/.commandcode/
+/.agents/
+/.codex/
+/.release.json

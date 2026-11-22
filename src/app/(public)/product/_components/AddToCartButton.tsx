@@ -26,7 +26,7 @@ interface AddToCartButtonProps {
 }
 
 /** Animation duration — API call and timer run in parallel via Promise.all */
-const ANIM_MS = 1800;
+const ANIM_MS = 250;
 
 function trackAddToCart(product: GuestCartProduct, quantity: number) {
   trackMetaPixel(product.store.meta_pixel_id, "AddToCart", {

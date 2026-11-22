@@ -6,6 +6,7 @@ import { resolveImageUrl } from "@/lib/imageUrl";
 import GeneratedImageFallback from "@/components/shared/GeneratedImageFallback";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { FaSearch } from "react-icons/fa";
 
@@ -33,6 +34,7 @@ export default function ProductSearchBox({
   placeholder = "Search for products",
   compact = false,
 }: ProductSearchBoxProps) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -86,6 +88,14 @@ export default function ProductSearchBox({
             setQuery(e.target.value);
             setIsOpen(true);
           }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setIsOpen(false);
+            if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+              event.preventDefault();
+              setIsOpen(false);
+              router.push(resultHref);
+            }
+          }}
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
           style={{ outline: "none" }}
@@ -99,7 +109,7 @@ export default function ProductSearchBox({
             <p className="text-xs font-medium text-(--color-text-muted)">
               {helperText}
             </p>
-            <Link
+            <Link prefetch={false}
               href={resultHref}
               onClick={() => setIsOpen(false)}
               className="rounded-full bg-(--color-primary-100) px-3 py-1.5 text-xs font-semibold text-(--color-primary) transition hover:bg-(--color-primary-200)">
@@ -133,7 +143,7 @@ export default function ProductSearchBox({
                   const price = Number(product.price).toLocaleString("en-BD");
 
                   return (
-                    <Link
+                    <Link prefetch={false}
                       key={product.id}
                       href={ROUTE_BUILDERS.productDetail(product.slug)}
                       onClick={() => setIsOpen(false)}

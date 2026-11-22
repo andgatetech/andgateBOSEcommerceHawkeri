@@ -30,8 +30,15 @@ export default function MainHeader({ cartCount, isCartOpen, onCartClick }: MainH
   }, []);
 
   const showAuthenticatedMenu = isHydrated && isAuthenticated && !!user;
-  const accountLabel = hasMounted && showAuthenticatedMenu ? user.name : "Login / Register";
+  const accountLabel = hasMounted && showAuthenticatedMenu ? user.name : "Sign in";
 
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const dismiss = (event: KeyboardEvent) => { if (event.key === "Escape") { setIsMenuOpen(false); document.querySelector<HTMLElement>('[aria-controls="desktop-account-menu"]')?.focus(); } };
+    const outside = (event: MouseEvent) => { const target = event.target as Element; if (!target.closest('#desktop-account-menu, [aria-controls="desktop-account-menu"]')) setIsMenuOpen(false); };
+    document.addEventListener("keydown", dismiss); document.addEventListener("mousedown", outside);
+    return () => { document.removeEventListener("keydown", dismiss); document.removeEventListener("mousedown", outside); };
+  }, [isMenuOpen]);
   const accountMenuItems = [
     { label: "My Account", href: ROUTES.MY_ACCOUNT },
     { label: "My Wishlist", href: ROUTES.WISHLIST },
@@ -40,14 +47,14 @@ export default function MainHeader({ cartCount, isCartOpen, onCartClick }: MainH
   ];
 
   return (
-    <div className="py-2.5 hidden xl:block bg-(--color-bg) shadow-sm">
-      <div className="mx-auto px-4">
+    <div className="shop-main-header py-4 hidden xl:block bg-(--color-bg)">
+      <div className="mx-auto max-w-[1440px] px-8">
         <div className="flex items-center">
           {/* Logo */}
-          <Logo width={180} height={48} className="translate-x-2" />
+          <Logo width={180} height={48} className="" />
 
           {/* Right: Search + Account + Cart */}
-          <div className="flex items-center w-full justify-end gap-x-[54px]">
+          <div className="flex items-center min-w-0 flex-1 justify-end gap-x-8 pl-12">
             {/* Search Bar */}
             <div className="relative w-full 2xl:max-w-[800px] xl:max-w-[600px]">
               <ProductSearchBox
@@ -80,10 +87,10 @@ export default function MainHeader({ cartCount, isCartOpen, onCartClick }: MainH
                   onClick={() => setIsMenuOpen((current) => !current)}
                   aria-expanded={isMenuOpen}
                   aria-controls="desktop-account-menu"
-                  className="flex items-center gap-x-4 cursor-pointer relative"
+                  className="flex items-center gap-x-3 cursor-pointer relative whitespace-nowrap"
                 >
-                  <span className="inline-flex items-center justify-center bg-(--color-cta) w-10 h-10 rounded-full group-hover:bg-(--color-cta-hover) transition-colors">
-                    <FaUser className="text-base text-white" />
+                  <span className="inline-flex items-center justify-center bg-(--color-primary-50) w-10 h-10 rounded-full group-hover:bg-(--color-primary-100) transition-colors">
+                    <FaUser className="text-base text-(--color-primary)" />
                   </span>
                   <p className="flex flex-col text-(--color-text-muted) text-sm leading-[22px]">
                     <span className="text-base leading-6 text-(--color-dark) font-medium">
@@ -103,7 +110,7 @@ export default function MainHeader({ cartCount, isCartOpen, onCartClick }: MainH
                   {hasMounted && showAuthenticatedMenu ? (
                     <>
                       {accountMenuItems.map((item) => (
-                        <Link
+                        <Link prefetch={false}
                           key={item.label}
                           href={item.href}
                           className="block rounded-[12px] px-4 py-3 text-sm font-medium text-(--color-dark) transition hover:bg-(--color-primary-100) hover:text-(--color-primary)"
@@ -125,14 +132,14 @@ export default function MainHeader({ cartCount, isCartOpen, onCartClick }: MainH
                     </>
                   ) : (
                     <>
-                      <Link
+                      <Link prefetch={false}
                         href={ROUTES.LOGIN}
                         className="block rounded-[12px] px-4 py-3 text-sm font-medium text-(--color-dark) transition hover:bg-(--color-primary-100) hover:text-(--color-primary)"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Login
                       </Link>
-                      <Link
+                      <Link prefetch={false}
                         href={ROUTES.REGISTER}
                         className="block rounded-[12px] px-4 py-3 text-sm font-medium text-(--color-dark) transition hover:bg-(--color-primary-100) hover:text-(--color-primary)"
                         onClick={() => setIsMenuOpen(false)}

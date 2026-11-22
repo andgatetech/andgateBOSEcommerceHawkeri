@@ -28,14 +28,15 @@ export function middleware(request: NextRequest) {
   // React requires 'unsafe-eval' in dev mode for stack trace reconstruction.
   // It is never used in production — safe to gate on NODE_ENV.
   const scriptSrc = isDev
-    ? `script-src 'self' 'nonce-${nonce}' 'unsafe-eval' https://accounts.google.com`
-    : `script-src 'self' 'nonce-${nonce}' https://accounts.google.com`;
+    ? `script-src 'self' 'nonce-${nonce}' 'unsafe-eval' https://accounts.google.com https://connect.facebook.net`
+    : `script-src 'self' 'nonce-${nonce}' https://accounts.google.com https://connect.facebook.net`;
 
-  const imageSources = cspSources("'self'", "data:", "blob:", "https://api.andgatepos.com", imageOrigin);
+  const imageSources = cspSources("'self'", "data:", "blob:", "https://api.andgatepos.com", "https://www.facebook.com", imageOrigin);
   const connectSources = cspSources(
     "'self'",
     "https://api.andgatepos.com",
     "https://accounts.google.com",
+    "https://www.facebook.com",
     apiOrigin,
     imageOrigin,
   );
@@ -44,6 +45,7 @@ export function middleware(request: NextRequest) {
     "default-src 'self'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
+    "frame-src https://accounts.google.com",
     "object-src 'none'",
     scriptSrc,
     // 'unsafe-inline' kept — React style={{}} props produce HTML style="" attributes which cannot be nonced
@@ -60,6 +62,7 @@ export function middleware(request: NextRequest) {
   // own generated inline scripts (RSC payloads, chunk bootstrap, etc.)
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },

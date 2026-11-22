@@ -1053,7 +1053,7 @@ export default function CheckoutView() {
                     Delivery Charge
                   </span>
                   <span className="font-medium text-(--color-dark)">
-                    {formatPrice(totalShippingFee)}
+                    {activeShippingAddress?.city || addressValue.districtName ? formatPrice(totalShippingFee) : "Select district first"}
                   </span>
                 </div>
                 <div className="border-t border-(--color-border) pt-5">
@@ -1102,9 +1102,9 @@ export default function CheckoutView() {
                 <span className="text-xs font-semibold text-(--color-dark)">Secure Checkout</span>
               </div>
               <div className="space-y-2 text-xs text-(--color-text-muted) leading-5">
-                <p>🔒 256-bit SSL encryption protects your data</p>
-                <p>✅ Your payment info is never stored on our servers</p>
-                <p>🔄 Easy returns within 7 days of delivery</p>
+                <p>Your connection is protected with HTTPS.</p>
+                <p>Cash on delivery — no card details needed.</p>
+                <p>Review the product and store return policy before ordering.</p>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {[

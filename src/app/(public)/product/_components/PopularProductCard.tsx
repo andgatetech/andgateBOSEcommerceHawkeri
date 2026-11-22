@@ -7,12 +7,11 @@ import {
 } from "@/features/wishlist/wishlistApi";
 import { useAppSelector } from "@/lib/hooks";
 import { resolveImageUrl } from "@/lib/imageUrl";
-import GeneratedImageFallback from "@/components/shared/GeneratedImageFallback";
 import type { EcommerceProduct } from "@/types";
-import Image from "next/image";
+import ProductPhoto from "@/components/shared/ProductPhoto";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { FiHeart, FiStar } from "react-icons/fi";
+import { FiHeart } from "react-icons/fi";
 import AddToCartButton from "./AddToCartButton";
 
 type PopularProductCardProps = {
@@ -65,7 +64,7 @@ export default function PopularProductCard({
   }
 
   return (
-    <div className="group flex h-full flex-col overflow-hidden rounded-[24px] border border-(--color-primary-100) bg-white shadow-[0_14px_42px_rgba(2,58,92,0.07)] transition duration-300 hover:-translate-y-1.5 hover:border-(--color-primary-200) hover:shadow-[0_22px_60px_rgba(2,58,92,0.14)]">
+    <article className="shop-product-card group flex h-full flex-col overflow-hidden rounded-xl border border-(--color-border) bg-white transition duration-200 hover:border-(--color-primary-200)">
       <div className="relative">
         <button
           type="button"
@@ -82,50 +81,27 @@ export default function PopularProductCard({
           />
         </button>
 
-        <Link href={ROUTE_BUILDERS.productDetail(product.slug)}>
-          <div className="relative aspect-square overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,var(--color-primary-50)_100%)]">
-            <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-white/92 px-2.5 py-1 text-[11px] font-bold text-(--color-primary-900) shadow-sm backdrop-blur">
-              <FiStar className="h-3 w-3 fill-(--color-cta) text-(--color-cta)" />
-              Popular
-            </div>
-            {primaryImage ? (
-              <>
-                <Image
-                  src={primaryImage}
-                  alt={product.product_name}
-                  fill
-                  sizes="(max-width: 639px) 50vw, (max-width: 1279px) 33vw, 20vw"
-                  className="object-contain p-5 transition duration-500 group-hover:scale-[1.07]"
-                />
-                <div className="pointer-events-none absolute inset-x-8 bottom-4 h-6 rounded-full bg-(--color-primary-900)/[0.08] blur-xl" />
-              </>
-            ) : (
-              <GeneratedImageFallback
-                name={product.product_name}
-                kind="product"
-                showLabel
-                className="h-full w-full border-0"
-                iconClassName="text-[24px]"
-                textClassName="text-[30px]"
-              />
-            )}
+        <Link prefetch={false} href={ROUTE_BUILDERS.productDetail(product.slug)}>
+          <div className="shop-product-image relative aspect-square overflow-hidden bg-white">
+            <ProductPhoto src={primaryImage} alt={product.product_name} sizes="(max-width: 639px) 50vw, (max-width: 1279px) 33vw, 20vw" className="object-contain p-5 transition duration-300 group-hover:scale-[1.03]" />
           </div>
         </Link>
       </div>
 
-      <Link href={ROUTE_BUILDERS.productDetail(product.slug)} className="flex flex-1 flex-col">
-        <div className="flex flex-1 flex-col px-4 pb-2 pt-4">
-          {product.category && (
-            <p className="inline-flex w-fit rounded-full bg-(--color-primary-50) px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-(--color-primary)">
+      <Link prefetch={false} href={ROUTE_BUILDERS.productDetail(product.slug)} className="flex flex-1 flex-col">
+        <div className="shop-product-copy flex flex-1 flex-col px-4 pb-2 pt-4">
+          {product.category && !/^uncategori[sz]ed$/i.test(product.category.name) && (
+            <p className="shop-product-category inline-flex w-fit rounded-full bg-(--color-primary-50) px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-(--color-primary)">
               {product.category.name}
             </p>
           )}
 
-          <h3 className="mt-3 line-clamp-2 min-h-[42px] text-[15px] font-extrabold leading-[1.35] tracking-[-0.02em] text-(--color-primary-900)">
+          <h3 className="shop-product-name mt-3 line-clamp-2 min-h-[42px] text-[15px] font-extrabold leading-[1.35] tracking-[-0.02em] text-(--color-primary-900)">
             {product.product_name}
           </h3>
 
-          {product.brand && (
+          {product.variant_data && Object.keys(product.variant_data).length > 0 && <p className="shop-product-options">{Object.entries(product.variant_data).slice(0,2).map(([key,value]) => `${key}: ${value}`).join(" · ")}</p>}
+          {product.brand && !/^(\(?not provided\)?|unknown|n\/a)$/i.test(product.brand.name.trim()) && (
             <p className="mt-1 text-[14px] text-(--color-text-muted)">
               By{" "}
               <span className="font-semibold text-(--color-primary)">
@@ -144,8 +120,9 @@ export default function PopularProductCard({
             )}
           </p>
 
-          <div className="mt-3 flex items-end gap-2">
-            <span className="text-[21px] font-extrabold tracking-[-0.03em] text-(--color-primary)">
+          <p className="mt-2 truncate text-xs text-(--color-text-muted)">Sold by {product.sold_by.store_name}</p>
+          <div className="shop-product-pricing mt-3 flex flex-wrap items-end gap-2">
+            <span className="shop-product-price text-[21px] font-extrabold tracking-[-0.03em] text-(--color-primary)">
               ৳{price}
             </span>
             {originalPriceText && originalPrice !== displayPrice ? (
@@ -188,9 +165,9 @@ export default function PopularProductCard({
               slug: product.sold_by.store_slug,
             },
           }}
-          className="mt-3 w-full shadow-[0_12px_24px_rgba(231,145,55,0.22)]"
+          className="shop-card-buy mt-3 w-full"
         />
       </div>
-    </div>
+    </article>
   );
 }

@@ -1,24 +1,18 @@
+import Container from "@/components/shared/Container";
 import HeroBanner from "@/components/home/HeroBanner";
 import FeaturedCategories from "@/components/home/FeaturedCategories";
-import CategoryShowcase from "@/components/home/CategoryShowcase";
 import FeaturedStores from "@/components/home/FeaturedStores";
 import PopularProductsSection from "./product/_components/PopularProductsSection";
-import ProductPromoBanners from "./product/_components/ProductPromoBanners";
 import DealsOfTheDay from "@/components/home/DealsOfTheDay";
-import EditorialPromoGrid from "@/components/home/EditorialPromoGrid";
-import TopProductsGrid from "@/components/home/TopProductsGrid";
-import ServiceHighlights from "@/components/home/ServiceHighlights";
+import HomeBenefits from "@/components/home/HomeBenefits";
+import HomeCollections from "@/components/home/HomeCollections";
+import { homeProducts, homeCategories } from "@/lib/homeMerchandising";
 import RecentlyViewedSection from "@/components/home/RecentlyViewedSection";
-import CountdownPromoBanner from "@/components/home/CountdownPromoBanner";
-import TrustStatsBar from "@/components/home/TrustStatsBar";
-import HowItWorks from "@/components/home/HowItWorks";
-import ImageStorySection from "@/components/home/ImageStorySection";
 import { serverFetchJson } from "@/lib/serverFetch";
 import { API_ROUTES } from "@/config/apiRoutes";
-import { getSharedStores } from "@/lib/catalog";
 import { SITE_URL } from "@/lib/site";
 import type { Metadata } from "next";
-import type { Category, EcommerceProduct, PaginatedResponse } from "@/types";
+import type { Category, EcommerceProduct, PaginatedResponse, Store } from "@/types";
 
 export const metadata: Metadata = {
   title: "Online Shopping in Bangladesh",
@@ -54,7 +48,7 @@ async function getHomeProducts(): Promise<{ items: EcommerceProduct[]; total: nu
   try {
     const response = await serverFetchJson<PaginatedResponse<EcommerceProduct>>(
       API_ROUTES.ECOMMERCE_CATALOG.PRODUCTS,
-      { page: 1, per_page: 30, sort_field: "created_at", sort_direction: "desc" },
+      { page: 1, per_page: 80, sort_field: "created_at", sort_direction: "desc" },
       { revalidate: 30 },
     );
     return { items: response.data.items, total: response.data.pagination?.total ?? response.data.items.length };
@@ -100,6 +94,16 @@ async function getDealsOfTheDay(): Promise<EcommerceProduct[]> {
   }
 }
 
+async function getHomeStores(): Promise<Store[]> {
+  try {
+    return await getPageItems<Store>(API_ROUTES.ECOMMERCE_CATALOG.STORES, {
+      per_page: 100, sort_field: "store_name", sort_direction: "asc",
+    });
+  } catch {
+    return [];
+  }
+}
+
 export default async function HomePage() {
   const dedup = <T extends { id: number }>(arr: T[]) =>
     Array.from(new Map(arr.map((x) => [x.id, x])).values());
@@ -109,22 +113,16 @@ export default async function HomePage() {
     getFeaturedCategories(),
     getPopularProducts(),
     getDealsOfTheDay(),
-    getSharedStores(),
+    getHomeStores(),
   ]);
   const products = dedup(rawProducts.items);
   const popularProducts = dedup(rawPopular);
-  const dealProducts = dedup(rawDeals);
-  const topProducts = products.slice(16, 28).length >= 4
-    ? products.slice(16, 28)
-    : products.slice(0, 12);
-
-  const trustStats = {
-    stores: stores.length,
-    products: rawProducts.total,
-  };
-
+  const dealProducts = homeProducts(dedup(rawDeals), 5);
+  const categories = homeCategories(products, featuredCategories);
+  const fresh = homeProducts(products, 10);
+  const more = homeProducts([...products, ...popularProducts], 40).filter(p => !fresh.some(first => first.id === p.id || first.product_name.trim().toLowerCase() === p.product_name.trim().toLowerCase())).slice(0, 10);
   return (
-    <main>
+    <main className="market-home">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -132,7 +130,7 @@ export default async function HomePage() {
             "@context": "https://schema.org",
             "@type": "ItemList",
             name: "Hawkeri featured products",
-            itemListElement: products.slice(0, 12).map((product, index) => ({
+            itemListElement: [...fresh, ...more].map((product, index) => ({
               "@type": "ListItem",
               position: index + 1,
               url: `${SITE_URL}/product/${product.slug}`,
@@ -141,41 +139,16 @@ export default async function HomePage() {
           }),
         }}
       />
-      <h1 className="sr-only">Online Shopping in Bangladesh with Hawkeri</h1>
-      {/* White bg */}
-      <HeroBanner />
-      {/* Primary-50 tint */}
-      <div className="bg-primary-50/50">
-        <TrustStatsBar stats={trustStats} />
-      </div>
-      <ImageStorySection />
-      {/* White bg */}
-      <FeaturedCategories categories={featuredCategories} />
-      {/* Primary-50 tint */}
-      <div className="bg-primary-50/30">
-        <DealsOfTheDay products={dealProducts} />
-      </div>
-      <CountdownPromoBanner />
-      {/* White bg */}
-      <PopularProductsSection products={popularProducts} />
-      {/* White bg */}
-      <CategoryShowcase categories={featuredCategories} />
-      {/* White bg */}
-      <ProductPromoBanners />
-      <EditorialPromoGrid />
-      {/* Primary-50 tint */}
-      <div className="bg-primary-50/30">
-        <FeaturedStores stores={stores} />
-      </div>
-      {/* White bg */}
-      <TopProductsGrid products={topProducts} />
-      {/* Primary-50 tint */}
-      <div className="bg-primary-50/30">
-        <HowItWorks />
-      </div>
-      <RecentlyViewedSection />
-      {/* White bg */}
-      <ServiceHighlights />
+
+      <HeroBanner products={products} categories={categories} />
+      <HomeBenefits />
+      <FeaturedCategories categories={categories} />
+      <PopularProductsSection products={fresh} />
+      <DealsOfTheDay products={dealProducts} />
+      <HomeCollections products={products} />
+      <PopularProductsSection products={more} title="More to explore" description="A little inspiration for your next order." id="discover-more" />
+      <FeaturedStores stores={stores.filter(store => [...fresh, ...more].some(p => p.sold_by.store_slug === store.slug))} />
+      <Container><RecentlyViewedSection /></Container>
     </main>
   );
 }

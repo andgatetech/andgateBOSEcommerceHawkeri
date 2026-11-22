@@ -30,7 +30,7 @@ export async function serverFetchJson<T>(
       throw new Error(`serverFetchJson failed: ${response.status} ${response.statusText}`);
     }
 
-    return response.json() as Promise<T>;
+    return await response.json() as T;
   } finally {
     clearTimeout(timer);
   }

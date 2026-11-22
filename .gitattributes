@@ -1,0 +1,5 @@
+# Preserve deployed snapshots and upstream license text verbatim.
+*.css whitespace=-blank-at-eol,cr-at-eol
+*.conf whitespace=-blank-at-eol
+*.cf whitespace=-blank-at-eol
+*.txt whitespace=-blank-at-eol
