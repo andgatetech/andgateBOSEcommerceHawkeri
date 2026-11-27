@@ -71,7 +71,11 @@ function sanitizeItems(value: unknown): CartItemData[] {
     const candidate = item as CartItemData;
     return (
       Number.isFinite(candidate.id) &&
-      Number.isFinite(candidate.quantity) &&
+      Number.isFinite(candidate.quantity) && candidate.quantity > 0 &&
+      candidate.store !== null && typeof candidate.store === "object" &&
+      typeof candidate.store.slug === "string" &&
+      Array.isArray(candidate.stock?.images) &&
+      Number.isFinite(Number(candidate.stock?.price)) && Number(candidate.stock.price) >= 0 &&
       Boolean(candidate.stock?.id) &&
       typeof candidate.stock?.product_name === "string"
     );
@@ -148,6 +152,15 @@ const guestCartSlice = createSlice({
         refreshSubtotal(item);
       }
     },
+    syncGuestCartQuote(state, action: PayloadAction<{ stock_id: number; store_id: number; unit_price: number; subtotal: number }[]>) {
+      for (const line of action.payload) {
+        const item = state.items.find((item) => item.stock.id === line.stock_id);
+        if (!item) continue;
+        item.store.id = line.store_id;
+        item.stock.price = line.unit_price;
+        item.subtotal = line.subtotal;
+      }
+    },
     clearGuestCart(state) {
       state.items = [];
     },
@@ -161,6 +174,7 @@ export const {
   removeGuestCartItem,
   syncGuestCartStock,
   clearGuestCart,
+  syncGuestCartQuote,
 } = guestCartSlice.actions;
 
 export default guestCartSlice.reducer;

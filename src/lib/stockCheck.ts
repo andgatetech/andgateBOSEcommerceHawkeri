@@ -11,13 +11,14 @@ export function getStockQuantityMap(stocks?: StockCheckItem[]) {
 }
 
 export function getStockIssues(items: CartItemData[], stocks?: StockCheckItem[]): StockIssue[] {
+  if (!stocks) return [];
   const quantityByStockId = getStockQuantityMap(stocks);
 
   return items
     .map((item) => {
-      const availableQuantity = quantityByStockId.get(item.stock.id);
+      const availableQuantity = quantityByStockId.get(item.stock.id) ?? 0;
 
-      if (availableQuantity === undefined || item.quantity <= availableQuantity) {
+      if (item.quantity <= availableQuantity) {
         return null;
       }
 

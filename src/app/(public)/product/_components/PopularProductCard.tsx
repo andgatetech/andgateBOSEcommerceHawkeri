@@ -160,7 +160,7 @@ export default function PopularProductCard({
             description: product.description,
             images: product.images,
             store: {
-              id: 0,
+              id: product.sold_by.store_id,
               store_name: product.sold_by.store_name,
               slug: product.sold_by.store_slug,
             },

@@ -12,6 +12,8 @@ import type {
   Store,
 } from "@/types";
 
+export const revalidate = 3600;
+
 const staticRoutes = PUBLIC_ROUTES.filter((route) => !["/login", "/register"].includes(route));
 
 function absoluteUrl(path: string) {
@@ -19,17 +21,16 @@ function absoluteUrl(path: string) {
 }
 
 async function getItems<T>(path: string, perPage: number): Promise<T[]> {
-  try {
-    const response = await serverFetchJson<PaginatedResponse<T>>(
-      path,
-      { page: 1, per_page: perPage },
-      { revalidate: 3600 },
-    );
-    return response.data.items;
-  } catch (error) {
-    console.error(`[Sitemap] Failed to fetch ${path}:`, error);
-    return [];
+  const first = await serverFetchJson<PaginatedResponse<T>>(path, { page: 1, per_page: Math.min(perPage, 100) }, { revalidate: 3600, timeout: 20000 });
+  const items = [...first.data.items];
+  const pages = first.data.pagination.last_page;
+  if (pages > 450) throw new Error(`Sitemap ${path} requires splitting before exceeding 50,000 URLs`);
+  for (let start = 2; start <= pages; start += 4) {
+    const batch = await Promise.all(Array.from({ length: Math.min(4, pages - start + 1) }, (_, index) =>
+      serverFetchJson<PaginatedResponse<T>>(path, { page: start + index, per_page: Math.min(perPage, 100) }, { revalidate: 3600, timeout: 20000 })));
+    for (const response of batch) items.push(...response.data.items);
   }
+  return items;
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -63,25 +64,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     ...categories.map((category) => ({
       url: absoluteUrl(`/category/${category.slug}`),
-      lastModified: category.updated_at ? new Date(category.updated_at) : now,
+      lastModified: category.updated_at ? new Date(category.updated_at) : undefined,
       changeFrequency: "weekly" as const,
       priority: 0.7,
     })),
     ...brands.map((brand) => ({
       url: absoluteUrl(`/brand/${brand.slug}`),
-      lastModified: brand.updated_at ? new Date(brand.updated_at) : now,
+      lastModified: brand.updated_at ? new Date(brand.updated_at) : undefined,
       changeFrequency: "weekly" as const,
       priority: 0.6,
     })),
     ...stores.map((store) => ({
       url: absoluteUrl(`/store/${store.slug}`),
-      lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.6,
     })),
     ...products.map((product) => ({
       url: absoluteUrl(`/product/${product.slug}`),
-      lastModified: now,
       changeFrequency: "daily" as const,
       priority: 0.8,
     })),

@@ -16,8 +16,22 @@ type OrdersListResponse = ApiResponse<EcommerceOrderListData>;
 type OrderDetailResponse = ApiResponse<EcommerceOrder>;
 type OrderMutationResponse = ApiResponse<EcommerceOrder | null>;
 
+export type CheckoutQuote = {
+  quote_id: string;
+  expires_at: string;
+  subtotal: number;
+  shipping_fee: number;
+  total: number;
+  items: { stock_id: number; store_id: number; unit_price: number; subtotal: number; quantity: number }[];
+};
+
 export const ordersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    getCheckoutQuote: builder.query<CheckoutQuote, CreateOrderRequest>({
+      query: (body) => ({ url: "/checkout/quote", method: "POST", body }),
+      transformResponse: (response: ApiResponse<CheckoutQuote>) => response.data,
+      keepUnusedDataFor: 0,
+    }),
     getOrders: builder.query<EcommerceOrderListData, GetOrdersParams | void>({
       query: (params) => ({
         url: API_ROUTES.ECOMMERCE_ORDERS.ORDERS,
@@ -82,6 +96,7 @@ export const ordersApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetCheckoutQuoteQuery,
   useCancelOrderMutation,
   useCreateOrderMutation,
   useGetOrderQuery,

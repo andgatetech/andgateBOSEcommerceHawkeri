@@ -1,3 +1,4 @@
+import { normalizeBdPhone } from "@/lib/bdPhone";
 import type { AddressFormValue } from "@/components/shared/AddressDetailsForm";
 import type { EcommerceAddressPayload, EcommerceOrderShippingAddress } from "@/types";
 
@@ -25,11 +26,11 @@ export function shippingAddressToFormValue(
   return {
     fullName: shippingAddress.name ?? "",
     phone: shippingAddress.phone ?? "",
-    districtId: "",
+    districtId: shippingAddress.city_id ? String(shippingAddress.city_id) : "",
     districtName: shippingAddress.city ?? "",
-    zoneId: "",
+    zoneId: shippingAddress.zone_id ? String(shippingAddress.zone_id) : "",
     zoneName: shippingAddress.zone ?? "",
-    areaId: "",
+    areaId: shippingAddress.area_id ? String(shippingAddress.area_id) : "",
     areaName: shippingAddress.area ?? "",
     addressLine: shippingAddress.address_line ?? "",
     note: "",
@@ -41,10 +42,13 @@ export function formValueToAddressPayload(
   formValue: AddressFormValue,
 ): EcommerceAddressPayload {
   return {
+    city_id: Number(formValue.districtId) || null,
+    zone_id: Number(formValue.zoneId) || null,
+    area_id: Number(formValue.areaId) || null,
     type: formValue.label,
     label: null,
     name: formValue.fullName.trim(),
-    phone: formValue.phone.trim(),
+    phone: normalizeBdPhone(formValue.phone),
     address_line: formValue.addressLine.trim(),
     city: formValue.districtName.trim(),
     zone: formValue.zoneName.trim(),

@@ -871,7 +871,7 @@ export default function ProductDetailPage({ product }: ProductDetailPageProps) {
                     description: product.description,
                     images: product.images,
                     store: {
-                      id: 0,
+                      id: product.sold_by.store_id,
                       store_name: product.sold_by.store_name,
                       slug: product.sold_by.store_slug,
                     },
@@ -1155,7 +1155,7 @@ export default function ProductDetailPage({ product }: ProductDetailPageProps) {
               product_name: product.product_name,
               description: product.description,
               images: product.images,
-              store: { id: 0, store_name: product.sold_by.store_name, slug: product.sold_by.store_slug },
+              store: { id: product.sold_by.store_id, store_name: product.sold_by.store_name, slug: product.sold_by.store_slug },
             }}
             quantity={quantity}
           />

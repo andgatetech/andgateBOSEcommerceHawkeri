@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { skipToken } from "@reduxjs/toolkit/query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import toast from "react-hot-toast";
 import dynamic from "next/dynamic";
 
@@ -23,7 +23,7 @@ import {
   FiMail,
 } from "react-icons/fi";
 import ServiceHighlights from "@/components/home/ServiceHighlights";
-import AddressDetailsForm, { type AddressFormValue } from "@/components/shared/AddressDetailsForm";
+import AddressDetailsForm, { addressSchema, type AddressFormValue } from "@/components/shared/AddressDetailsForm";
 import { SkeletonBlock } from "@/components/shared/Skeletons";
 import { ROUTE_BUILDERS, ROUTES } from "@/config/routes";
 import { useGetMyAddressesQuery } from "@/features/account/myAddressApi";
@@ -36,10 +36,10 @@ import {
   shippingAddressToFormValue,
 } from "@/lib/address";
 import { useCheckStockQuery, useGetCartQuery, useLazyCheckStockQuery } from "@/features/cart/cartApi";
-import { clearGuestCart } from "@/features/cart/guestCartSlice";
+import { clearGuestCart, syncGuestCartQuote } from "@/features/cart/guestCartSlice";
 import { getStockQuantityMap, getStockIssues } from "@/lib/stockCheck";
 import { isTokenExpired } from "@/features/auth/authStorage";
-import { useCreateOrderMutation } from "@/features/orders/ordersApi";
+import { useCreateOrderMutation, useGetCheckoutQuoteQuery } from "@/features/orders/ordersApi";
 import { getBackendMessage } from "@/lib/apiMessage";
 import { saveCheckoutSuccess } from "@/lib/checkoutSuccessStorage";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
@@ -411,6 +411,8 @@ export default function CheckoutView() {
   const [triggerStockCheck, { isFetching: isCheckingStockBeforeSubmit }] = useLazyCheckStockQuery();
   useGetPathaoCitiesQuery();
 
+  const [deliveryReady, setDeliveryReady] = useState(false);
+  const submitLock = useRef(false);
   const [checkoutMode, setCheckoutMode] = useState<CheckoutMode>("gate");
   const [guestEmail, setGuestEmail] = useState("");
   const [addressValue, setAddressValue] = useState<AddressFormValue>(emptyAddressFormValue);
@@ -456,32 +458,39 @@ export default function CheckoutView() {
   const activeShippingAddress = !showAddressForm && savedAddress ? savedAddress : null;
   const displayAddress = activeShippingAddress ? getAddressDisplayLines(activeShippingAddress) : null;
 
-  const FEE_DHAKA = Number(process.env.NEXT_PUBLIC_SHIPPING_FEE_DHAKA ?? 80);
-  const FEE_OUTSIDE = Number(process.env.NEXT_PUBLIC_SHIPPING_FEE_OUTSIDE_DHAKA ?? 150);
-
-  const subtotal = Number(cartTotal);
-  const shippingFee =
-    activeShippingAddress?.city || addressValue.districtName
-      ? (activeShippingAddress?.city ?? addressValue.districtName).trim().toLowerCase() === "dhaka"
-        ? FEE_DHAKA
-        : FEE_OUTSIDE
-      : 0;
-  const storeShippingFees = useMemo(() => {
-    const storeIds = Array.from(new Set(items.map((item) => item.store.id))).sort((a, b) => a - b);
-
-    return storeIds.map((storeId) => ({
-      store_id: storeId,
-      amount: shippingFee,
-    }));
-  }, [items, shippingFee]);
-  const totalShippingFee =
-    storeShippingFees.length > 1
-      ? storeShippingFees.reduce((sum, fee) => sum + fee.amount, 0)
-      : shippingFee;
-  const total = subtotal + totalShippingFee;
+  const quoteBody = useMemo<CreateOrderRequest>(() => ({
+    items: items.map((item) => ({ stock_id: item.stock.id, quantity: item.quantity })),
+    payment_method: "cash_on_delivery",
+    ...(activeShippingAddress ? { address_id: activeShippingAddress.id } : {
+      shipping_address: { ...formValueToAddressPayload(addressValue), email: guestEmail.trim() || undefined },
+    }),
+  }), [items, activeShippingAddress, addressValue, guestEmail]);
+  const quoteInput = JSON.stringify(quoteBody);
+  const [settledQuoteInput, setSettledQuoteInput] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setSettledQuoteInput(quoteInput), 500);
+    return () => clearTimeout(timer);
+  }, [quoteInput]);
+  const canQuote = items.length > 0 && Boolean(activeShippingAddress || deliveryReady)
+    && (!guestEmail.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.trim()));
+  const { currentData: quote, isFetching: quoteLoading, isError: quoteError, refetch: retryQuote } = useGetCheckoutQuoteQuery(
+    canQuote && settledQuoteInput === quoteInput ? quoteBody : skipToken,
+    { pollingInterval: 240000, refetchOnMountOrArgChange: true },
+  );
+  const quoteReady = canQuote && settledQuoteInput === quoteInput && Boolean(quote) && !quoteLoading && !quoteError;
+  const subtotal = quoteReady ? quote!.subtotal : Number(cartTotal);
+  const totalShippingFee = quoteReady ? quote!.shipping_fee : 0;
+  const total = quoteReady ? quote!.total : subtotal;
+  useEffect(() => {
+    if (quote && !hasActiveSession) dispatch(syncGuestCartQuote(quote.items));
+  }, [quote, hasActiveSession, dispatch]);
+  const quotedItems = items.map((item) => {
+    const line = quoteReady ? quote!.items.find((line) => line.stock_id === item.stock.id) : undefined;
+    return line ? { ...item, store: { ...item.store, id: line.store_id }, subtotal: line.subtotal, stock: { ...item.stock, price: line.unit_price } } : item;
+  });
   const checkoutStoreGroups = useMemo(() => {
     const groups = new Map<
-      number,
+      string,
       {
         storeId: number;
         storeName: string;
@@ -494,7 +503,7 @@ export default function CheckoutView() {
     >();
 
     for (const item of items) {
-      const current = groups.get(item.store.id) ?? {
+      const current = groups.get(item.store.slug) ?? {
         storeId: item.store.id,
         storeName: item.store.store_name,
         storeSlug: item.store.slug,
@@ -507,7 +516,7 @@ export default function CheckoutView() {
       current.subtotal += Number(item.subtotal);
       current.itemCount += item.quantity;
       current.contentIds.push(String(item.stock.id));
-      groups.set(item.store.id, current);
+      groups.set(item.store.slug, current);
     }
 
     return Array.from(groups.values());
@@ -575,7 +584,7 @@ export default function CheckoutView() {
   }, [orderSubmitStatus]);
 
   async function handlePlaceOrder() {
-    if (items.length === 0 || isSubmitting || isCheckingStockBeforeSubmit) {
+    if (submitLock.current || items.length === 0 || isSubmitting || isCheckingStockBeforeSubmit) {
       return;
     }
 
@@ -583,35 +592,16 @@ export default function CheckoutView() {
     setOrderSubmitMessage(undefined);
     setIsAccountConflict(false);
 
-    const shippingAddress = activeShippingAddress ?? formValueToAddressPayload(addressValue);
-
-    const recipientName = shippingAddress.name?.trim() ?? "";
-    const recipientPhone = shippingAddress.phone?.trim() ?? "";
-    const addressLine = shippingAddress.address_line.trim();
-    const city = shippingAddress.city?.trim() ?? "";
-    const zone = shippingAddress.zone?.trim() ?? "";
-    const area = shippingAddress.area?.trim() ?? "";
-
-    if (!recipientName) {
-      toast.error("Full name is required.");
+    if (!activeShippingAddress && (!addressSchema.safeParse(addressValue).success || !deliveryReady)) {
+      toast.error("Please complete a valid delivery address.");
+      document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
       return;
     }
-
-    if (!recipientPhone) {
-      toast.error("Phone number is required.");
+    if (!quoteReady || !quote) {
+      toast.error("Please wait for a verified checkout total, or retry delivery verification.");
       return;
     }
-
-    if (!addressLine) {
-      toast.error("Address line is required.");
-      return;
-    }
-
-    if (!city || !zone || !area) {
-      toast.error("District, zone, and area are required.");
-      return;
-    }
-
+    submitLock.current = true;
     let latestStockData: { stocks: { stock_id: number; quantity: number }[] };
 
     try {
@@ -622,6 +612,7 @@ export default function CheckoutView() {
       setOrderSubmitStatus("failure");
       setOrderSubmitMessage(message);
       toast.error(message);
+      submitLock.current = false;
       return;
     }
 
@@ -635,39 +626,23 @@ export default function CheckoutView() {
       setOrderSubmitStatus("failure");
       setOrderSubmitMessage(message);
       toast.error(message);
+      submitLock.current = false;
       return;
     }
 
-    const payload: CreateOrderRequest = {
-      items: items.map((item) => ({
-        stock_id: item.stock.id,
-        quantity: item.quantity,
-      })),
-      payment_method: paymentMethodMap[paymentId] ?? paymentId,
+    let payload: CreateOrderRequest = {
+      ...quoteBody,
+      quote_id: quote.quote_id,
       notes: addressValue.note.trim() || undefined,
+      idempotency_key: crypto.randomUUID(),
     };
-
-    if (storeShippingFees.length > 1) {
-      payload.store_shipping_fees = storeShippingFees;
-    } else {
-      payload.shipping_fee = shippingFee;
-    }
-
-    if (activeShippingAddress) {
-      payload.address_id = activeShippingAddress.id;
-    } else {
-      payload.shipping_address = {
-        ...shippingAddress,
-        name: recipientName,
-        phone: recipientPhone,
-        email: checkoutMode === "guest" && guestEmail.trim() ? guestEmail.trim() : undefined,
-        address_line: addressLine,
-        city,
-        zone,
-        area,
-        postal_code: shippingAddress.postal_code ?? "",
-      };
-    }
+    // Reuse the exact request after an ambiguous response, including across reloads.
+    const intent = JSON.stringify({ ...quoteBody, notes: payload.notes });
+    try {
+      const previous = JSON.parse(sessionStorage.getItem("hawkeri_pending_checkout") ?? "null");
+      if (previous?.intent === intent && previous?.payload?.idempotency_key) payload = previous.payload;
+      sessionStorage.setItem("hawkeri_pending_checkout", JSON.stringify({ intent, payload }));
+    } catch { /* Storage may be unavailable; the in-flight click lock still applies. */ }
 
     try {
       const result = await createOrder(payload).unwrap();
@@ -679,6 +654,7 @@ export default function CheckoutView() {
       }
 
       const order = result.data;
+      sessionStorage.removeItem("hawkeri_pending_checkout");
       saveCheckoutSuccess(result);
       if (!hasActiveSession) {
         dispatch(clearGuestCart());
@@ -689,6 +665,10 @@ export default function CheckoutView() {
         router.push(ROUTE_BUILDERS.orderSuccess(encodeURIComponent(order.order_number)));
       }, 900);
     } catch (error) {
+      if (error && typeof error === "object" && "status" in error && typeof error.status === "number" && error.status >= 400 && error.status < 500) {
+        sessionStorage.removeItem("hawkeri_pending_checkout");
+        void retryQuote();
+      }
       const message = getOrderErrorMessage(error);
       const conflict = message.toLowerCase().includes("account already exists");
       setIsAccountConflict(conflict);
@@ -699,6 +679,8 @@ export default function CheckoutView() {
           : message
       );
       toast.error(conflict ? "Please sign in to continue." : message);
+    } finally {
+      submitLock.current = false;
     }
   }
 
@@ -872,6 +854,7 @@ export default function CheckoutView() {
             ) : (
               <div className="space-y-4">
                 <AddressDetailsForm
+                  onValidityChange={setDeliveryReady}
                   value={addressValue}
                   onChange={setAddressValue}
                 />
@@ -929,7 +912,7 @@ export default function CheckoutView() {
                 </div>
               ) : (
                 <div className="divide-y divide-(--color-border)">
-                  {items.map((item) => (
+                  {quotedItems.map((item) => (
                     <CheckoutItemRow
                       key={item.id}
                       item={item}
@@ -1030,9 +1013,7 @@ export default function CheckoutView() {
             <div className="mb-5 rounded-full bg-[#eef6ef] px-4.5 py-3 text-sm font-semibold text-(--color-dark)">
               <span className="text-(--color-primary)">Delivery Charge:</span>{" "}
               <span className="text-[#0d7a74]">
-                {activeShippingAddress?.city || addressValue.districtName
-                  ? formatPrice(totalShippingFee)
-                  : "Select district first"}
+                {quoteReady ? formatPrice(totalShippingFee) : "Complete delivery details"}
               </span>
             </div>
 
@@ -1053,7 +1034,7 @@ export default function CheckoutView() {
                     Delivery Charge
                   </span>
                   <span className="font-medium text-(--color-dark)">
-                    {activeShippingAddress?.city || addressValue.districtName ? formatPrice(totalShippingFee) : "Select district first"}
+                    {quoteReady ? formatPrice(totalShippingFee) : "Pending verification"}
                   </span>
                 </div>
                 <div className="border-t border-(--color-border) pt-5">
@@ -1062,7 +1043,7 @@ export default function CheckoutView() {
                       Total
                     </span>
                     <span className="text-base font-bold text-(--color-dark)">
-                      {formatPrice(total)}
+                      {quoteReady ? formatPrice(total) : "Pending verification"}
                     </span>
                   </div>
                 </div>
@@ -1070,6 +1051,8 @@ export default function CheckoutView() {
             </div>
 
             <div className="mt-7 space-y-3">
+              {quoteLoading ? <p role="status" className="text-sm">Verifying prices and delivery…</p> : null}
+              {quoteError && canQuote ? <div role="alert" className="text-sm text-red-700"><p>We could not verify your checkout total or delivery address.</p><button type="button" className="mt-2 underline" onClick={() => void retryQuote()}>Retry checkout verification</button></div> : null}
               <button
                 type="button"
                 onClick={handlePlaceOrder}
@@ -1078,7 +1061,7 @@ export default function CheckoutView() {
                   isLoading ||
                   isSubmitting ||
                   isCheckingStockBeforeSubmit ||
-                  hasKnownStockIssues
+                  hasKnownStockIssues || !quoteReady
                 }
                 className="flex min-h-[54px] w-full items-center justify-center rounded-full bg-(--color-primary) px-6 text-sm font-semibold text-white transition hover:bg-(--color-primary-dark) disabled:opacity-50 disabled:cursor-not-allowed">
                 <FiShoppingBag className="mr-2" />

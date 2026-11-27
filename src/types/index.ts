@@ -177,6 +177,9 @@ export type EcommercePaymentStatus = "pending" | "partial" | "paid" | "refunded"
 export type EcommerceAddressType = "home" | "office" | "other";
 
 export interface EcommerceOrderShippingAddress {
+  city_id?: number | null;
+  zone_id?: number | null;
+  area_id?: number | null;
   type?: EcommerceAddressType;
   label?: string | null;
   name: string;
@@ -199,6 +202,9 @@ export interface EcommerceSavedAddress extends EcommerceOrderShippingAddress {
 }
 
 export interface EcommerceAddressPayload {
+  city_id?: number | null;
+  zone_id?: number | null;
+  area_id?: number | null;
   type: EcommerceAddressType;
   label?: string | null;
   name?: string | null;
@@ -346,6 +352,7 @@ export interface EcommerceOrderSummary extends EcommerceStoreOrder {
 }
 
 export interface EcommerceOrder {
+  privacy_limited?: boolean;
   order_number: string;
   is_multi_store?: boolean;
   store_order_count?: number;
@@ -386,6 +393,8 @@ export interface EcommerceOrderListData {
 }
 
 export interface CreateOrderRequest {
+  quote_id?: string;
+  idempotency_key?: string;
   items: {
     stock_id: number;
     quantity: number;
@@ -415,6 +424,7 @@ export interface EcommerceProductImage {
 }
 
 export interface EcommerceProductSoldBy {
+  store_id: number;
   store_name: string;
   store_slug: string;
   meta_pixel_id?: string | null;

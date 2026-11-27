@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { normalizeBdPhone } from "@/lib/bdPhone";
 import { z } from "zod";
 import { FiMapPin } from "react-icons/fi";
 import {
@@ -10,17 +11,18 @@ import {
 } from "@/features/locations/locationApi";
 
 export const addressSchema = z.object({
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  fullName: z.string().trim().min(2, "Full name must be at least 2 characters"),
   phone: z
     .string()
-    .regex(/^01[3-9]\d{8}$/, "Enter a valid BD mobile number (e.g. 01712345678)"),
+    .transform(normalizeBdPhone)
+    .pipe(z.string().regex(/^01[3-9]\d{8}$/, "Enter a valid BD mobile number (e.g. 01712345678)")),
   districtId: z.string().min(1, "Please select a district"),
   districtName: z.string(),
   zoneId: z.string().min(1, "Please select a zone"),
   zoneName: z.string(),
   areaId: z.string().min(1, "Please select an area"),
   areaName: z.string(),
-  addressLine: z.string().min(5, "Address line must be at least 5 characters"),
+  addressLine: z.string().trim().min(5, "Address line must be at least 5 characters"),
   note: z.string(),
   label: z.enum(["home", "office", "other"]),
 });
@@ -35,6 +37,7 @@ type AddressDetailsFormProps = {
   showHeader?: boolean;
   showNoteField?: boolean;
   className?: string;
+  onValidityChange?: (valid: boolean) => void;
 };
 
 const addressTypeOptions: Array<{ id: AddressFormValue["label"]; label: string }> = [
@@ -57,13 +60,14 @@ export default function AddressDetailsForm({
   showHeader = true,
   showNoteField = true,
   className = "",
+  onValidityChange,
 }: AddressDetailsFormProps) {
   const [touched, setTouched] = useState<Partial<Record<keyof AddressFormValue, boolean>>>({});
-  const { data: cities = [], isFetching: loadingCities } = useGetPathaoCitiesQuery();
-  const { currentData: zones = [], isFetching: loadingZones } = useGetPathaoZonesQuery(value.districtId, {
+  const { data: cities = [], isFetching: loadingCities, isError: citiesError, refetch: retryCities } = useGetPathaoCitiesQuery();
+  const { currentData: zones = [], isFetching: loadingZones, isError: zonesError, refetch: retryZones } = useGetPathaoZonesQuery(value.districtId, {
     skip: !value.districtId,
   });
-  const { currentData: areas = [], isFetching: loadingAreas } = useGetPathaoAreasQuery(value.zoneId, {
+  const { currentData: areas = [], isFetching: loadingAreas, isError: areasError, refetch: retryAreas } = useGetPathaoAreasQuery(value.zoneId, {
     skip: !value.zoneId,
   });
 
@@ -77,6 +81,17 @@ export default function AddressDetailsForm({
     }
     return errs;
   }, [value]);
+
+  const selectedArea = areas.find((area) => String(area.area_id) === value.areaId);
+  const locationReady = !citiesError && !zonesError && !areasError && !loadingCities && !loadingZones && !loadingAreas
+    && cities.some((city) => String(city.city_id) === value.districtId)
+    && zones.some((zone) => String(zone.zone_id) === value.zoneId)
+    && Boolean(selectedArea) && selectedArea?.home_delivery_available !== false;
+  useEffect(() => {
+    onValidityChange?.(locationReady && addressSchema.safeParse(value).success);
+  }, [locationReady, value, onValidityChange]);
+  const locationError = citiesError ? "districts" : zonesError ? "zones" : areasError ? "areas" : null;
+  const retryLocations = () => { if (citiesError) void retryCities(); else if (zonesError) void retryZones(); else if (areasError) void retryAreas(); };
 
   function touch(field: keyof AddressFormValue) {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -178,11 +193,17 @@ export default function AddressDetailsForm({
         </div>
       ) : null}
 
+      {locationError ? <div role="alert" className="m-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm">
+        <p>Delivery {locationError} could not be loaded. Your details have been kept.</p>
+        <button type="button" onClick={retryLocations} className="mt-2 font-semibold underline">Retry delivery locations</button>
+      </div> : null}
       <div className="grid gap-4 p-5 md:grid-cols-2">
         <label className="space-y-2 text-sm">
           <span className="font-medium text-(--color-dark)">Full Name</span>
           <input
             type="text"
+            aria-label="Full Name"
+            aria-invalid={Boolean(fieldError("fullName"))}
             value={value.fullName}
             onChange={(event) => updateField("fullName", event.target.value)}
             onBlur={() => touch("fullName")}
@@ -196,6 +217,8 @@ export default function AddressDetailsForm({
           <span className="font-medium text-(--color-dark)">Phone Number</span>
           <input
             type="tel"
+            aria-label="Phone Number"
+            aria-invalid={Boolean(fieldError("phone"))}
             value={value.phone}
             onChange={(event) => updateField("phone", event.target.value)}
             onBlur={() => touch("phone")}
@@ -208,10 +231,11 @@ export default function AddressDetailsForm({
         <label className="space-y-2 text-sm">
           <span className="font-medium text-(--color-dark)">District</span>
           <select
+            aria-label="District"
             value={value.districtId}
             onChange={(event) => handleDistrictChange(event.target.value)}
             onBlur={() => touch("districtId")}
-            disabled={loadingCities}
+            disabled={loadingCities || citiesError}
             className={`h-13 w-full rounded-[16px] border bg-(--color-bg) px-4 text-(--color-dark) outline-none transition focus:border-(--color-primary) ${fieldError("districtId") ? "border-[#d2435b]" : "border-(--color-border)"}`}
           >
             <option value="">{loadingCities ? "Loading districts..." : "Select district"}</option>
@@ -227,10 +251,11 @@ export default function AddressDetailsForm({
         <label className="space-y-2 text-sm">
           <span className="font-medium text-(--color-dark)">Zone</span>
           <select
+            aria-label="Zone"
             value={value.zoneId}
             onChange={(event) => handleZoneChange(event.target.value)}
             onBlur={() => touch("zoneId")}
-            disabled={!value.districtId || loadingZones}
+            disabled={!value.districtId || loadingZones || citiesError || zonesError}
             className={`h-13 w-full rounded-[16px] border bg-(--color-bg) px-4 text-(--color-dark) outline-none transition disabled:cursor-not-allowed disabled:bg-[#f8fafc] disabled:text-(--color-text-muted) focus:border-(--color-primary) ${fieldError("zoneId") ? "border-[#d2435b]" : "border-(--color-border)"}`}
           >
             <option value="">
@@ -248,6 +273,7 @@ export default function AddressDetailsForm({
         <label className="space-y-2 text-sm">
           <span className="font-medium text-(--color-dark)">Area</span>
           <select
+            aria-label="Area"
             value={value.areaId}
             onChange={(event) => {
               const nextAreaId = event.target.value;
@@ -255,15 +281,15 @@ export default function AddressDetailsForm({
               onChange({ ...value, areaId: nextAreaId, areaName: selectedArea?.area_name ?? "" });
             }}
             onBlur={() => touch("areaId")}
-            disabled={!value.zoneId || loadingAreas}
+            disabled={!value.zoneId || loadingAreas || zonesError || areasError}
             className={`h-13 w-full rounded-[16px] border bg-(--color-bg) px-4 text-(--color-dark) outline-none transition disabled:cursor-not-allowed disabled:bg-[#f8fafc] disabled:text-(--color-text-muted) focus:border-(--color-primary) ${fieldError("areaId") ? "border-[#d2435b]" : "border-(--color-border)"}`}
           >
             <option value="">
               {!value.zoneId ? "Select zone first" : loadingAreas ? "Loading areas..." : "Select area"}
             </option>
             {areas.map((area) => (
-              <option key={area.area_id} value={area.area_id}>
-                {area.area_name}
+              <option key={area.area_id} value={area.area_id} disabled={area.home_delivery_available === false}>
+                {area.area_name}{area.home_delivery_available === false ? " — delivery unavailable" : ""}
               </option>
             ))}
           </select>
@@ -274,6 +300,8 @@ export default function AddressDetailsForm({
           <span className="font-medium text-(--color-dark)">Address Line</span>
           <input
             type="text"
+            aria-label="Address Line"
+            aria-invalid={Boolean(fieldError("addressLine"))}
             value={value.addressLine}
             onChange={(event) => updateField("addressLine", event.target.value)}
             onBlur={() => touch("addressLine")}

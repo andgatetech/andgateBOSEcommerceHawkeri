@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  staticPageGenerationTimeout: 180,
   outputFileTracingRoot: process.cwd(),
   turbopack: {
     root: process.cwd(),

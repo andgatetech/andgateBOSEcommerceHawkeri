@@ -36,17 +36,17 @@ const baseQueryWithAuth: BaseQueryFn<
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  const request = api.type === "query"
-    ? (typeof args === "string" ? { url: args, timeout: 10000 } : { timeout: 10000, ...args })
-    : args;
+  const request = typeof args === "string" ? { url: args, timeout: 30000 } : { timeout: 30000, ...args };
   const result = await baseQuery(request, api, extraOptions);
 
   if (result.error) {
+    const method = typeof args === "string" ? "GET" : (args.method ?? "GET").toUpperCase();
     if (api.type === "query" && result.error.status === "TIMEOUT_ERROR") retry.fail(result.error);
     if (result.error.status === 401) {
       clearStoredAuth();
       api.dispatch(logout());
     }
+    if (method !== "GET") retry.fail(result.error);
     // Stop retry loop for all client errors (4xx) — only 5xx and network errors are retryable
     if (typeof result.error.status === "number" && result.error.status < 500) {
       retry.fail(result.error);

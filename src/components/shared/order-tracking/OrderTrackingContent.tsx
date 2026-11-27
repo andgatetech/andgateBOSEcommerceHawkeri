@@ -142,7 +142,7 @@ export default function OrderTrackingContent({ variant = "public" }: OrderTracki
       <div className="mb-8">
         <h1 className="text-[34px] font-semibold tracking-[-0.04em] text-(--color-dark)">Order Tracking</h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-(--color-text-muted)">
-          Enter your order number to review each store order status, payment state, totals, and delivery address.
+          Enter your order number to check delivery progress. Sign in to view your full order details.
         </p>
       </div>
 
@@ -209,7 +209,13 @@ export default function OrderTrackingContent({ variant = "public" }: OrderTracki
           </div>
         ) : null}
 
-        {activeOrder && checkoutSummary && !trackingState.isFetching ? (
+        {activeOrder?.privacy_limited && !trackingState.isFetching ? <section className="mt-6 rounded-2xl border border-(--color-border) bg-white p-6">
+          <h2 className="text-xl font-semibold">Order {activeOrder.order_number}</h2>
+          <p className="mt-2 text-sm">Personal and payment details are private. Sign in to view orders linked to your account.</p>
+          <ul className="mt-4 space-y-3">{storeOrders.map((order, index) => <li key={index}>{getStoreOrderSellerName(order)} — {getCustomerOrderStatusLabel(order.status)}</li>)}</ul>
+          <Link href={ROUTES.LOGIN} className="mt-4 inline-block underline">Sign in</Link>
+        </section> : null}
+        {activeOrder && !activeOrder.privacy_limited && checkoutSummary && !trackingState.isFetching ? (
           <>
             <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-[22px] border border-(--color-border) bg-(--color-bg) p-5">

@@ -9,16 +9,8 @@ interface BrandDetailPageProps {
 }
 
 async function getBrandBySlug(slug: string): Promise<Brand | null> {
-  try {
-    const response = await serverFetchJson<PaginatedResponse<Brand>>("/brands", {
-      per_page: 100,
-      sort_field: "name",
-      sort_direction: "asc",
-    });
-    return response.data.items.find((brand) => brand.slug === slug) ?? null;
-  } catch {
-    return null;
-  }
+  const response = await serverFetchJson<PaginatedResponse<Brand>>("/brands", { slug, per_page: 1 });
+  return response.data.items.find((brand) => brand.slug === slug) ?? null;
 }
 
 export async function generateMetadata({
