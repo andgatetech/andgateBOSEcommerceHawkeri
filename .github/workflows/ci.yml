@@ -16,6 +16,10 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # Public runtime endpoint required while Next prerenders sitemap/catalog routes.
+      NEXT_PUBLIC_API_URL: https://api.andgatebos.com/api/ecommerce
+      NEXT_PUBLIC_IMAGE_BASE_URL: https://api.andgatebos.com
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
