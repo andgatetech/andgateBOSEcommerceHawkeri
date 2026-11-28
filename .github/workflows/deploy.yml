@@ -2,6 +2,10 @@ name: Deploy committed VPS release
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: [Hawkeri CI]
+    branches: [main]
+    types: [completed]
 
 permissions:
   contents: read
@@ -12,7 +16,9 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -26,4 +32,4 @@ jobs:
           command_timeout: 85m
           script: |
             set -eu
-            bash /var/www/hawkeri-current/scripts/deploy-vps.sh '${{ github.sha }}'
+            bash /var/www/hawkeri-current/scripts/deploy-vps.sh '${{ github.event.workflow_run.head_sha || github.sha }}'
